@@ -23,6 +23,13 @@ def filter_mutect2(sample, dp, af):
 
   return filter_mutect2_instance
 
+def filter_strelka(sample, dp, af):
+  def filter_strelka_instance(vcf, variant):
+    sample_id = vcf.samples.index('TUMOR')
+    total_depth = variant.INFO['DP'] # somatic + germline depth
+    vcf_af = variant.INFO['AF']
+    return total_depth >= dp and vcf_af > af
+
 def main(genome, signatures, vcfs, dps, afs, context_cutoff, caller, tags):
   logging.info('starting...')
 
@@ -38,6 +45,9 @@ def main(genome, signatures, vcfs, dps, afs, context_cutoff, caller, tags):
         if caller == 'mutect2':
           variant_filter = filter_mutect2(sample, dp, af)
 
+        if caller == 'strelka':
+          variant_filter = filter_strelka(sample, dp, af)
+
         out = io.StringIO()
         counts = mutational_signature.count.count(open(genome, 'r'), vcf, out=out, chroms=chroms, variant_filter=variant_filter)
         chroms = counts['chroms'] # keep track of updates
@@ -50,7 +60,7 @@ def main(genome, signatures, vcfs, dps, afs, context_cutoff, caller, tags):
           first = False
           sys.stdout.write('Sample\tTags\tCaller\tDP\tAF\tError\tVariants\tMultiplier\t{}\n'.format('\t'.join(result['signature_names'])))
 
-        sys.stdout.write('{}\t{}\t{}\t{:.2f}\t{:.3f}\t{}\t{:.3f}\t{}\n'.format(sample, tags, caller, dp, af, result['error'], counts['total'], result['total'], '\t'.join(['{:.3f}'.format(x / result['total']) for x in result['signature_values']])))
+        sys.stdout.write('{}\t{}\t{}\t{}\t{:.2f}\t{:.3f}\t{}\t{:.3f}\t{}\n'.format(sample, tags, caller, dp, af, result['error'], counts['total'], result['total'], '\t'.join(['{:.3f}'.format(x / result['total']) for x in result['signature_values']])))
 
         logging.info('calculating signature for %s with dp %i af %.2f: error %.2f total %.2f', vcf, dp, af, result['error'], result['total'])
 
