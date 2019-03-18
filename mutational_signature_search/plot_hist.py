@@ -49,15 +49,15 @@ colors = [
   '#977b1f'
 ]
 
-def main(data, sample, x, target, filters, title, logx):
+def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
   logging.info('starting...')
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
   included = total = 0
   results = []
   tags = set()
-  for row in csv.DictReader(open(data, 'r'), delimiter='\t'):
-    if row['Sample'].startswith(sample):
+  for row in csv.DictReader(data_fh, delimiter='\t'):
+    if row['Sample'] in samples:
       tags.add(row['Tags'])
       ok = True
       for f in filters:
@@ -94,7 +94,14 @@ def main(data, sample, x, target, filters, title, logx):
     ys = [r[1][sig] for r in results]
     ys_cumulative = [ys[i] + base[i] for i in range(len(ys))]
 
-    ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label='{}'.format(sig + 1))
+    if highlight is None:
+      ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label='{}'.format(sig + 1))
+    else:
+      label='{}'.format(sig + 1)
+      if label in highlight:
+        ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label=label)
+      else:
+        ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label=label, alpha=0.5)
     
     # new base
     base = ys_cumulative
@@ -102,9 +109,9 @@ def main(data, sample, x, target, filters, title, logx):
   ax.set_ylabel('Signature proportion')
   ax.set_xlabel(x)
   if title is None:
-    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, sample, ' '.join(filters)))
+    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, ' '.join(samples), ' '.join(filters)))
   else:
-    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, sample, title))
+    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, ' '.join(sample), title))
   #ax.legend(loc='best')
   #ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
   ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
@@ -116,8 +123,9 @@ def main(data, sample, x, target, filters, title, logx):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Plot changes in signature')
   parser.add_argument('--data', required=True, help='data file')
-  parser.add_argument('--sample', required=True, help='sample filter')
+  parser.add_argument('--samples', nargs='+', required=True, help='sample filter')
   parser.add_argument('--filters', nargs='*', help='other filters')
+  parser.add_argument('--highlight', nargs='*', help='signature(s) to highlight')
   parser.add_argument('--x', required=True, help='x column name')
   parser.add_argument('--logx', action='store_true', help='log x')
   parser.add_argument('--verbose', action='store_true', help='more logging')
@@ -129,4 +137,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.data, args.sample, args.x, args.target, args.filters, args.title, args.logx)
+  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight)

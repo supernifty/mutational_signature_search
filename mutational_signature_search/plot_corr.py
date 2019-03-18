@@ -50,13 +50,13 @@ colors = [
   '#977b1f'
 ]
 
-def main(data, target, panel, exome, xaxis, yaxis):
+def plot_corr(data_fh, target, panel, exome, xaxis, yaxis):
   logging.info('starting...')
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
   total = 0
   tags = set()
-  for row in csv.DictReader(open(data, 'r'), delimiter='\t'):
+  for row in csv.DictReader(data_fh, delimiter='\t'):
     ok = True
     tags.add(row['Tags'])
     for f in panel:
@@ -135,4 +135,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.data, args.target, args.panel, args.exome, args.xaxis, args.yaxis)
+  plot_corr(open(args.data, 'r'), args.target, args.panel, args.exome, args.xaxis, args.yaxis)

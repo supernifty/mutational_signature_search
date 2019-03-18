@@ -30,6 +30,8 @@ def filter_strelka(sample, dp, af):
     vcf_af = variant.INFO['AF']
     return total_depth >= dp and vcf_af > af
 
+  return filter_strelka_instance
+
 def main(genome, signatures, vcfs, dps, afs, context_cutoff, caller, tags):
   logging.info('starting...')
 
