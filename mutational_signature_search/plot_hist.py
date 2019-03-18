@@ -49,7 +49,7 @@ colors = [
   '#977b1f'
 ]
 
-def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
+def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, error_plot):
   logging.info('starting...')
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
@@ -69,7 +69,7 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
         included += 1
         xval = float(row[x]) # x axis value
         sigs = [float(row['Signature.{}'.format(n)]) for n in range(1, 31)] # array of sig values
-        results.append((xval, sigs))
+        results.append((xval, sigs, float(row['Error'])))
         logging.debug(row)
 
     total += 1
@@ -81,8 +81,17 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
   # sort xvals
   results = sorted(results, key=lambda r: r[0])
 
+  if len(results) == 0:
+    logging.warn('No data to plot')
+    sys.exit(0)
+
   fig = plt.figure(figsize=FIGSIZE)
-  ax = fig.add_subplot(111)
+  if error_plot:
+    grid = plt.GridSpec(6, 6, hspace=0, wspace=0)
+    ax = fig.add_subplot(grid[0:-1, :])
+    ax_err = fig.add_subplot(grid[-1, :], sharex=ax)
+  else:
+    ax = fig.add_subplot(111)
 
   if logx:
     ax.set_xscale("log", nonposx='clip')
@@ -101,7 +110,7 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
       if label in highlight:
         ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label=label)
       else:
-        ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label=label, alpha=0.5)
+        ax.fill_between(xs, base, ys_cumulative, color=colors[sig], label=label, alpha=0.2)
     
     # new base
     base = ys_cumulative
@@ -111,10 +120,17 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight):
   if title is None:
     ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, ' '.join(samples), ' '.join(filters)))
   else:
-    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, ' '.join(sample), title))
+    ax.set_title('Somatic mutational signatures detected by {} {} ({})'.format(x, ' '.join(samples), title))
   #ax.legend(loc='best')
   #ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
   ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
+
+  if error_plot:
+    ys = [r[2] for r in results]
+    ax_err.plot(xs, ys, 'k-', linewidth=0.5)
+    ax_err.grid(True)
+    ax_err.set_ylabel('Error')
+    ax_err.set_ylim((0, 1.0))
 
   logging.info('done processing %i of %i', included, total)
   plt.savefig(target)
@@ -128,6 +144,7 @@ if __name__ == '__main__':
   parser.add_argument('--highlight', nargs='*', help='signature(s) to highlight')
   parser.add_argument('--x', required=True, help='x column name')
   parser.add_argument('--logx', action='store_true', help='log x')
+  parser.add_argument('--error_plot', action='store_true', help='include erorr plot')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   parser.add_argument('--title', required=False, help='sample filter')
   parser.add_argument('--target', required=False, default='plot.png', help='plot filename')
@@ -137,4 +154,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight)
+  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot)
