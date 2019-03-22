@@ -83,7 +83,7 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
 
   if len(results) == 0:
     logging.warn('No data to plot')
-    sys.exit(0)
+    return
 
   fig = plt.figure(figsize=FIGSIZE)
   if error_plot:
@@ -128,6 +128,7 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
   if error_plot:
     ys = [r[2] for r in results]
     ax_err.plot(xs, ys, 'k-', linewidth=0.5)
+    ax_err.fill_between(xs, 0, ys, color='#a0a0a0')
     ax_err.grid(True)
     ax_err.set_ylabel('Error')
     ax_err.set_ylim((0, 1.0))
