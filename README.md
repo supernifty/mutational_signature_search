@@ -17,6 +17,7 @@ pip install -r requirements.txt
 
 ## Usage
 
+* plot_hist: plot evolution of signatures across a parameter for a single sample
 
 ## Inputs
 * VCF files

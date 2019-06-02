@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-  given tumour and normal vcf pairs, explore msi status
+  plot correlation between groups of signatures
 '''
 
 import argparse
@@ -50,7 +50,7 @@ colors = [
   '#977b1f'
 ]
 
-def plot_corr(data_fh, target, panel, exome, xaxis, yaxis):
+def plot_corr(data_fh, target, panel, exome, xaxis, yaxis, signature_ids):
   logging.info('starting...')
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
@@ -66,7 +66,7 @@ def plot_corr(data_fh, target, panel, exome, xaxis, yaxis):
 
     if ok:
       logging.debug(row)
-      sigs_panel = [float(row['Signature.{}'.format(n)]) for n in range(1, 31)] # array of sig values
+      sigs_panel = [float(row[signature_id]) for signature_id in signature_ids] # array of sig values
       total += 1
 
     ok = True
@@ -76,8 +76,7 @@ def plot_corr(data_fh, target, panel, exome, xaxis, yaxis):
         ok = False
 
     if ok:
-      logging.debug(row)
-      sigs_exome = [float(row['Signature.{}'.format(n)]) for n in range(1, 31)] # array of sig values
+      sigs_exome = [float(row[signature_id]) for signature_id in signature_ids] # array of sig values
       total += 1
 
   logging.info('found %i matching records', total)
@@ -112,13 +111,18 @@ def plot_corr(data_fh, target, panel, exome, xaxis, yaxis):
     ax.set_xlabel(xaxis)
 
   ax.set_title('Correlation for {}'.format(' '.join(exome)))
-  ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
   ax.set_xlim([0,maxs + 0.05])
   ax.set_ylim([0,maxs + 0.05])
   ax.plot([0, maxs], [0, maxs], color='#808080')
 
+  # place legend at right based on https://stackoverflow.com/questions/10101700/moving-matplotlib-legend-outside-of-the-axis-makes-it-cutoff-by-the-figure-box/10154763#10154763
+  handles, labels = ax.get_legend_handles_labels()
+  lgd = ax.legend(handles, labels, loc='upper left', bbox_to_anchor=(1.01,1.0), borderaxespad=0)
+  lgd.get_frame().set_edgecolor('#000000')
+  fig.savefig(target, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
   logging.info('done processing %i', total)
-  plt.savefig(target)
+  matplotlib.pyplot.close('all')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Plot changes in signature')
@@ -129,10 +133,11 @@ if __name__ == '__main__':
   parser.add_argument('--target', required=False, default='correlation.png', help='plot filename')
   parser.add_argument('--xaxis', required=False, help='plot filename')
   parser.add_argument('--yaxis', required=False, help='plot filename')
+  parser.add_argument('--signature_ids', nargs='+', help='signature ids for plot')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_corr(open(args.data, 'r'), args.target, args.panel, args.exome, args.xaxis, args.yaxis)
+  plot_corr(open(args.data, 'r'), args.target, args.panel, args.exome, args.xaxis, args.yaxis, args.signature_ids)

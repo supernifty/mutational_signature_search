@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-  given tumour and normal vcf pairs, explore msi status
+  plot signatures seen across two inputs
 '''
 
 import argparse
@@ -13,9 +13,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pylab import rcParams
 # rcParams['figure.figsize'] = 16, 10
-FIGSIZE = (10, 10)
 
-def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highlight, y_multiples):
+LABELS = {'DP': 'Minimum Depth', 'AF': 'Minimum Variant Allele Fraction'}
+
+def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highlight, y_multiples, max_error, figsize=10):
+  FIGSIZE = (figsize + 2, figsize)
   logging.info('starting...')
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
@@ -24,6 +26,7 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
   tags = set()
   xvals = set()
   yvals = set()
+  max_zval = 0.0
   for row in csv.DictReader(data_fh, delimiter='\t'):
     if row['Sample'] in samples:
       tags.add(row['Tags'])
@@ -33,7 +36,6 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
         if val != row[col]:
           ok = False
 
-      # hack
       if y_multiples is not None and int(row['DP']) % y_multiples != 0:
         ok = False
 
@@ -43,11 +45,15 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
         yval = float(row[ylabel]) # y axis value
         xvals.add(xval)
         yvals.add(yval)
-        zval = float(row['Signature.{}'.format(highlight)])
+        #zval = float(row['Signature.{}'.format(highlight)])
+        zval = float(row[highlight])
         if row['Error'] == 'nan':
-          results['{},{}'.format(xval, yval)] = (float(zval), 1)
+          results['{},{}'.format(xval, yval)] = (0.0, 1)
+        elif float(row['Error']) > max_error:
+          results['{},{}'.format(xval, yval)] = (0.0, float(row['Error']))
         else:
-          results['{},{}'.format(xval, yval)] = (float(zval), float(row['Error']))
+          results['{},{}'.format(xval, yval)] = (zval, float(row['Error']))
+          max_zval = max(max_zval, zval)
         logging.debug(row)
 
     total += 1
@@ -60,7 +66,7 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
     return
 
   xvals = sorted(list(xvals))
-  yvals = sorted(list(yvals))
+  yvals = sorted(list(yvals))[::-1] # bottom left
 
   zvals = []
   tvals = []
@@ -72,7 +78,10 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
       key = '{},{}'.format(x, y)
       if key in results:
         zrow.append(results[key][0])
-        trow.append('{:.0f}%\n{:.0f}%'.format(results[key][0] * 100, results[key][1] * 100))
+        if results[key][1] > max_error:
+          trow.append('-\n{:.0f}%'.format(results[key][1] * 100))
+        else:
+          trow.append('{:.0f}%\n{:.0f}%'.format(results[key][0] * 100, results[key][1] * 100))
       else:
         zrow.append(0.0)
         trow.append('')
@@ -83,17 +92,20 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
   ax = fig.add_subplot(111)
   im = ax.imshow(zvals)
 
+  cbar = ax.figure.colorbar(im, ax=ax, fraction=0.04, pad=0.01, shrink=0.9)
+  cbar.ax.set_ylabel('Signature {} %'.format(highlight), rotation=-90, va="bottom")
+
   ax.set_xticks(range(len(xvals)))
   ax.set_yticks(range(len(yvals)))
   ax.set_xticklabels(xvals)
   ax.set_yticklabels(yvals)
 
-  ax.set_ylabel(ylabel)
-  ax.set_xlabel(xlabel)
+  ax.set_ylabel(LABELS[ylabel])
+  ax.set_xlabel(LABELS[xlabel])
 
   for y in range(len(yvals)):
     for x in range(len(xvals)):
-      if zvals[y][x] > 0.5:
+      if zvals[y][x] > max_zval * 0.5:
         text = ax.text(x, y, tvals[y][x], ha="center", va="center", color="k")
       else:
         text = ax.text(x, y, tvals[y][x], ha="center", va="center", color="w")
@@ -104,7 +116,9 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
     ax.set_title(title)
 
   logging.info('done processing %i of %i', included, total)
+  plt.tight_layout()
   plt.savefig(target)
+  matplotlib.pyplot.close('all')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Plot changes in signature')
@@ -118,10 +132,12 @@ if __name__ == '__main__':
   parser.add_argument('--verbose', action='store_true', help='more logging')
   parser.add_argument('--title', required=False, help='sample filter')
   parser.add_argument('--target', required=False, default='plot.png', help='plot filename')
+  parser.add_argument('--max_error', type=float, default=0.5, help='x column name')
+  parser.add_argument('--figsize', type=int, default=10, help='figsize')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_heat(open(args.data, 'r'), args.samples, args.x, args.y, args.target, args.filters, args.title, args.highlight, args.y_multiples)
+  plot_heat(open(args.data, 'r'), args.samples, args.x, args.y, args.target, args.filters, args.title, args.highlight, args.y_multiples, args.max_error, args.figsize)
