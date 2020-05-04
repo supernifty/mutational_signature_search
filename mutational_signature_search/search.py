@@ -101,7 +101,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Signature search')
 
   parser.add_argument('--genome', required=True, help='reference genome')
-  parser.add_argument('--signatures', required=True, help='reference genome')
+  parser.add_argument('--signatures', required=True, help='context counts')
   parser.add_argument('--vcfs', required=True, nargs='+', help='vcfs')
   parser.add_argument('--caller', required=True, help='variant caller mutect2 or strelka or bam')
   parser.add_argument('--tags', required=False, default='', help='tags to include in output')

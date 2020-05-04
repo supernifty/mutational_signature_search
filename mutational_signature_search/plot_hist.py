@@ -12,49 +12,20 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pylab import rcParams
-# rcParams['figure.figsize'] = 16, 10
-#FIGSIZE = (16, 8)
-FIGSIZE = (36, 18)
-LABELS = {'AF': 'Minimum Variant Allele Fraction', 'DP': 'Minimum Depth', 'Variants': 'Variant Count'}
+LABELS = {'AF': 'Minimum Variant Allele Fraction', 'DP': 'Minimum Tumour Depth at Variant', 'Variants': 'Variant Count'}
 COUNT_SPLIT = 0.05
+X_HIGHLIGHT_COLOUR='#ff8000'
 
 # from http://tools.medialab.sciences-po.fr/iwanthue/
-colors = [ 
-  '#cc5ac5',
-  '#61c350',
-  '#9358ca',
-  '#9bb932',
-  '#626cd4',
-  '#d8ab39',
-  '#5e73b8',
-  '#dc842f',
-  '#60a4da',
-  '#cd4b33', # 10
-  '#4ec584',
-  '#db3666',
-  '#3d9037',
-  '#d5509a',
-  '#69862a',
-  '#cb91d4',
-  '#b4ad4a',
-  '#98518b',
-  '#9db76f',
-  '#a44657',
-  '#42c3c2',
-  '#e07a8a',
-  '#2b7650',
-  '#e38f6b',
-  '#5aad86',
-  '#995a2b',
-  '#5d8547',
-  '#c39e64',
-  '#676828',
-  '#977b1f'
-]
+colors = {"SBS1": "#de3860", "SBS2": "#41ac2f", "SBS3": "#7951d0", "SBS4": "#73d053", "SBS5": "#b969e9", "SBS6": "#91ba2c", "SBS7a": "#b4b42f", "SBS7b": "#5276ec", "SBS7c": "#daae36", "SBS7d": "#9e40b5", "SBS8": "#43c673", "SBS9": "#dd4cb0", "SBS10a": "#3d9332", "SBS10b": "#de77dd", "SBS11": "#7bad47", "SBS12": "#9479e8", "SBS13": "#487b21", "SBS14": "#a83292", "SBS15": "#83c67d", "SBS16": "#664db1", "SBS17a": "#e18d28", "SBS17b": "#588de5", "SBS18": "#e2672a", "SBS19": "#34c7dd", "SBS20": "#cf402b", "SBS21": "#5acdaf", "SBS22": "#d74587", "SBS23": "#428647", "SBS24": "#7b51a7", "SBS25": "#b4ba64", "SBS26": "#646cc1", "SBS27": "#a27f1f", "SBS28": "#3b63ac", "SBS29": "#dca653", "SBS30": "#505099", "SBS31": "#7d8529", "SBS32": "#bf8ade", "SBS33": "#516615", "SBS34": "#b65da7", "SBS35": "#57a87a", "SBS36": "#c84249", "SBS37": "#37b5b1", "SBS38": "#a14622", "SBS39": "#58b5e1", "SBS40": "#ba6e2f", "SBS41": "#589ed8", "SBS42": "#e98261", "SBS43": "#3176ae", "SBS44": "#656413", "SBS45": "#a19fe2", "SBS46": "#756121", "SBS47": "#7e4a8d", "SBS48": "#326a38", "SBS49": "#dd8abf", "SBS50": "#1a6447", "SBS51": "#e78492", "SBS52": "#30876c", "SBS53": "#9d4d7c", "SBS54": "#919d5b", "SBS55": "#9d70ac", "SBS56": "#5b6f34", "SBS57": "#65659c", "SBS58": "#c9a865", "SBS59": "#a1455d", "SBS60": "#5e622c", "SBS84": "#b66057", "SBS85": "#dca173", "DBS1": "#855524", "DBS2": "#9f7846", "DBS3": "#7951d0", "DBS4": "#73d053", "DBS5": "#b969e9", "DBS6": "#91ba2c", "DBS7": "#3656ca", "DBS8": "#b4b42f", "DBS9": "#5276ec", "DBS10": "#daae36", "DBS11": "#9e40b5", "ID1": "#de3860", "ID2": "#41ac2f", "ID3": "#7951d0", "ID4": "#73d053", "ID5": "#b969e9", "ID6": "#91ba2c", "ID7": "#9e40b5", "ID8": "#43c673", "ID9": "#dd4cb0", "ID10": "#3d9332", "ID11": "#de77dd", "ID12": "#7bad47", "ID13": "#9479e8", "ID14": "#487b21", "ID15": "#a83292", "ID16": "#83c67d", "ID17": "#664db1", "1": "#de3860", "2": "#41ac2f", "3": "#7951d0", "4": "#73d053", "5": "#b969e9", "6": "#91ba2c", "7": "#b4b42f", "8": "#43c673", "9": "#dd4cb0", "10": "#3d9332", "11": "#7bad47", "12": "#9479e8", "13": "#487b21", "14": "#a83292", "15": "#83c67d", "16": "#664db1", "17": "#e18d28", "18": "#e2672a", "19": "#34c7dd", "20": "#cf402b", "21": "#5acdaf", "22": "#d74587", "23": "#428647", "24": "#7b51a7", "25": "#b4ba64", "26": "#646cc1", "27": "#a27f1f", "28": "#3b63ac", "29": "#dca653", "30": "#505099"}
 
-def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, error_plot, count_plot, split_count, signature_ids, min_signature_val):
+def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, error_plot, count_plot, split_count, signature_ids, min_signature_val, x_highlight, height=8, width=12, fontsize=8):
   logging.info('starting...')
   # split count currently only for both error and count plots
+
+  import matplotlib.style
+  matplotlib.style.use('seaborn')
+  rcParams.update({'font.size': fontsize})
 
   # Sample  Tags    Caller  DP      AF      Error   Variants        Multiplier      Signature.1     ...    Signature.30
   included = total = 0
@@ -89,7 +60,7 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
     logging.warn('No data to plot')
     return
 
-  fig = plt.figure(figsize=FIGSIZE)
+  fig = plt.figure(figsize=(width, height))
   if error_plot and not count_plot: # just error plot
     grid = plt.GridSpec(6, 1, hspace=0, wspace=0)
     ax = fig.add_subplot(grid[0:-1, :])
@@ -97,8 +68,8 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
   elif error_plot and count_plot: # both
     if split_count:
       grid = plt.GridSpec(100, 1, hspace=0, wspace=0) # total height
-      ax = fig.add_subplot(grid[0:-40, :]) # give to main plot
-      ax_err = fig.add_subplot(grid[-39:-21, :], sharex=ax) # give to error plot
+      ax = fig.add_subplot(grid[0:-30, :]) # give to main plot
+      ax_err = fig.add_subplot(grid[-29:-21, :], sharex=ax) # give to error plot
       ax_count_top = fig.add_subplot(grid[-20:-11, :], sharex=ax) # give to half of variant count plot
       ax_count_bottom = fig.add_subplot(grid[-10:, :], sharex=ax) # give to half of variant count plot
     else:
@@ -119,25 +90,30 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
 
   xs = [r[0] for r in results]
   base = [0] * len(xs)
+
   for sig in range(0, len(signature_ids)):
     ys = [r[1][sig] for r in results]
     ys_cumulative = [ys[i] + base[i] for i in range(len(ys))]
 
-    if max(ys) < min_signature_val:
+    label=signature_ids[sig]
+    color = colors[signature_ids[sig]]
+    if (highlight is None or label not in highlight) and max(ys) < min_signature_val:
       logging.debug('excluding signature %s due to no value greater than %.2f', min_signature_val)
-      ax.fill_between(xs, base, ys_cumulative, color=colors[hash(signature_ids[sig]) % len(colors)])
+      ax.fill_between(xs, base, ys_cumulative, color=color)
     else:
-      label=signature_ids[sig]
       if highlight is None:
-        ax.fill_between(xs, base, ys_cumulative, color=colors[hash(signature_ids[sig]) % len(colors)], label=label)
+        ax.fill_between(xs, base, ys_cumulative, color=color, label=label)
       else:
         if label in highlight:
-          ax.fill_between(xs, base, ys_cumulative, color=colors[hash(signature_ids[sig]) % len(colors)], label=label)
+          ax.fill_between(xs, base, ys_cumulative, color=color, label=label)
         else:
-          ax.fill_between(xs, base, ys_cumulative, color=colors[hash(signature_ids[sig]) % len(colors)], label=label, alpha=0.2)
+          ax.fill_between(xs, base, ys_cumulative, color=color, label=label, alpha=0.2)
     
     # new base
     base = ys_cumulative
+
+  if x_highlight is not None:
+    ax.axvline(x_highlight, color=X_HIGHLIGHT_COLOUR, ymin=0, ymax=1)
 
   ax.set_ylabel('Signature proportion')
   if not error_plot and not count_plot:
@@ -226,6 +202,7 @@ if __name__ == '__main__':
   parser.add_argument('--filters', nargs='*', help='other filters')
   parser.add_argument('--highlight', nargs='*', help='signature(s) to highlight')
   parser.add_argument('--x', required=True, help='x column name')
+  parser.add_argument('--x_highlight', required=False, type=float, help='vertical line at this value')
   parser.add_argument('--logx', action='store_true', help='log x')
   parser.add_argument('--error_plot', action='store_true', help='include erorr plot')
   parser.add_argument('--count_plot', action='store_true', help='include count plot')
@@ -235,10 +212,13 @@ if __name__ == '__main__':
   parser.add_argument('--title', required=False, help='sample filter')
   parser.add_argument('--target', required=False, default='plot.png', help='plot filename')
   parser.add_argument('--min_signature_val', required=False, default=-1, type=float, help='minimum value of signature to include')
+  parser.add_argument('--height', required=False, type=float, default=8, help='height of plot')
+  parser.add_argument('--width', required=False, type=float, width=12, help='width of plot')
+  parser.add_argument('--fontsize', required=False, default=12, type=int, help='plot font size')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.split_count, args.signature_ids, args.min_signature_val)
+  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.split_count, args.signature_ids, args.min_signature_val, args.x_highlight, args.height, args.width, args.fontsize)
