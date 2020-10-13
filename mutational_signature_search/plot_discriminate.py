@@ -80,6 +80,9 @@ CONFIDENCE_MIN_DENOM=1e-100
 def find_confidence(goal, pu, cu, psd, csd, distribution, max_yval, report=False, point_estimate=True):
   def calculate(x):
     if distribution == 'normal':
+      logging.info('normal parameters for positive: u=%.2f sd=%.2f', pu, psd)
+      logging.info('normal parameters for negative: u=%.2f sd=%.2f', cu, csd)
+
       if point_estimate:
         prob_p = abs(scipy.stats.norm.cdf(x - CONFIDENCE_DELTA, loc=pu, scale=psd) - scipy.stats.norm.cdf(x + CONFIDENCE_DELTA, loc=pu, scale=psd))
         prob_c = abs(scipy.stats.norm.cdf(x - CONFIDENCE_DELTA, loc=cu, scale=csd) - scipy.stats.norm.cdf(x + CONFIDENCE_DELTA, loc=cu, scale=csd))
@@ -105,6 +108,9 @@ def find_confidence(goal, pu, cu, psd, csd, distribution, max_yval, report=False
       cn = cu_scaled * (1 - cu_scaled) / (csd_scaled ** 2)
       ca = cu_scaled * cn
       cb = (1 - cu_scaled) * cn
+
+      logging.info('beta parameters for positive: a=%.2f b=%.2f', pa, pb)
+      logging.info('beta parameters for negative: a=%.2f b=%.2f', ca, cb)
 
       if point_estimate:
         prob_p = abs(scipy.stats.beta.cdf(x_scaled - CONFIDENCE_DELTA, pa, pb) - scipy.stats.beta.cdf(x_scaled + CONFIDENCE_DELTA, pa, pb))
@@ -304,7 +310,7 @@ def ci(xs, distribution, interval=0.95, max_yval=1.0):
       logging.debug('ppf for %s at interval %.2f max %f is %s with mean_scaled %f sd_scaled %f', xs, interval, max_yval, ppf, mean_scaled, sd_scaled)
     return ppf
 
-def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True):
+def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True, confidence_in=None):
   logging.info('v2. plotting signature %s with filter %s and confidence phenotype %s max_yval %.2f...', signature, filters, confidence_phenotypes, max_yval)
 
   import matplotlib.style
@@ -345,7 +351,11 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
       xval = float(row[x]) # x axis value
       if isinstance(signature, list):
         #highlight = sum([float(row['Signature.{}'.format(s)]) for s in signature])
-        yval = sum([float(row[s]) for s in signature])
+        try:
+          yval = sum([float(row[s]) for s in signature])
+        except:
+          logging.warn('failed to read %s', row)
+          raise
       else:
         #highlight = float(row['Signature.{}'.format(signature)])
         logging.debug('signature %s has value %s', signature, row[signature])
@@ -391,6 +401,8 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
   groups_low = {}
   groups_high = {}
   for group in groups:
+    if len(groups[group]) == 0:
+      continue
     groups_low[group] = [max_yval] * len(results[groups[group][0]]) # all ones
     groups_high[group] = [0.0] * len(results[groups[group][0]]) # all zeros
     logging.debug('group range %s: %s %s', group, groups_low[group], groups_high[group])
@@ -401,6 +413,9 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
 
   names = []
   for group_num, group in enumerate(groups):
+    if len(groups[group]) == 0:
+      continue
+
     color = GROUP_COLOURS[group_num % len(GROUP_COLOURS)]
     if highlight_groups is not None and group in highlight_groups:
       marker_size = HIGHLIGHT_MARKER_SIZE
@@ -482,7 +497,7 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
         ax.plot(xs, [group_summary[group][x] for x in xs], label='{}'.format(group), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
       else:
         logging.info('group %s has %i samples', group, len(group_summary[group][xs[0]]))
-        ax.plot(xs, mid, label='{} 50th pctl'.format(group), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
+        ax.plot(xs, mid, label='{} 50th pctl n={}'.format(group, len(group_summary[group][xs[0]])), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
         ax.plot(xs, upper, label='{} 95th pctl'.format(group), color=color, alpha=alpha, linewidth=STD_LINEWIDTH, marker=MARKERS[(group_num * 3 + 1) % len(MARKERS)], markersize=marker_size)
         ax.plot(xs, lower, label='{} 5th pctl'.format(group), color=color, alpha=alpha, linewidth=STD_LINEWIDTH, marker=MARKERS[(group_num * 3 + 2) % len(MARKERS)], markersize=marker_size)
         ax.fill_between(xs, lower, upper, color=color, alpha=0.2)
@@ -499,7 +514,7 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
       logging.debug('xs %i groups_low %i groups_high %i', len(xs), len(groups_low[group]), len(groups_high[group]))
       ax.fill_between(xs, groups_low[group], groups_high[group], color=GROUP_COLOURS[group_num % len(GROUP_COLOURS)], label=group, alpha=0.2)
 
-  # confidence
+  # confidence provided as percentages
   if confidence is not None:
     confidence_out.write('x\t{}\n'.format('\t'.join([str(c) for c in confidence])))
     confidence_results = {}
@@ -533,6 +548,16 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
     for ix, xval in enumerate(sorted(confidence_phenotype.keys())): # each x value
       logging.debug('writing xval={} for confs={}'.format(xval, confidence))
       confidence_out.write('{}\t{}\n'.format(xval, '\t'.join(['{:.2f}'.format(confidence_results[str(conf)].get(str(xval), -1)) for conf in confidence])))
+
+  # confidence provided as file
+  if confidence_in is not None:
+    rows = [x.strip('\n').split('\t') for x in open(confidence_in, 'r').readlines()]
+    intervals = [float(x) for x in rows[0][1:]]
+    for col, interval in enumerate(intervals):
+      confidence_xs = [float(row[0]) for row in rows[1:] if float(row[col + 1]) >= -0.1]
+      confidence_ys = [float(row[col + 1]) for row in rows[1:] if float(row[col + 1]) >= -0.1]
+      logging.debug('confidence_xs %s confidence_ys %s', confidence_xs, confidence_ys)
+      ax.plot(confidence_xs, confidence_ys, label='{:.0f}% confidence'.format(interval * 100), color=CONFIDENCE_COLORS[col % len(CONFIDENCE_COLORS)], alpha=CONFIDENCE_ALPHA, linewidth=CONFIDENCE_LINEWIDTH)
 
   # additional annotation
   if isinstance(signature, list):
@@ -598,10 +623,11 @@ if __name__ == '__main__':
   parser.add_argument('--no_legend', action='store_true', help='no samples in legend')
   parser.add_argument('--title', required=False, help='sample filter')
   parser.add_argument('--target', required=False, default='plot.png', help='plot filename')
-  parser.add_argument('--confidence', required=False, nargs='*', type=float, help='show confidence intervals')
+  parser.add_argument('--confidence', required=False, nargs='*', type=float, help='show confidence intervals e.g. 0.01 0.99')
+  parser.add_argument('--confidence_phenotypes', required=False, nargs='*', default=set(), help='which groups are phenotype')
+  parser.add_argument('--confidence_in', required=False, help='file containing existing confidence calculations')
   parser.add_argument('--distribution', required=False, default='normal', help='assumption of distribution [normal, lognormal]')
   parser.add_argument('--max_yval', required=False, type=float, default=1.0, help='vertical line at this value')
-  parser.add_argument('--confidence_phenotypes', required=False, nargs='*', default=set(), help='which groups are phenotype')
   parser.add_argument('--height', required=False, type=float, default=8, help='height of plot')
   parser.add_argument('--width', required=False, type=float, width=12, help='width of plot')
   parser.add_argument('--fontsize', required=False, default=12, type=int, help='plot font size')
@@ -617,5 +643,5 @@ if __name__ == '__main__':
     group, samples = item.split('=')
     groups[group] = samples.split(',')
 
-  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate)
+  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate, args.confidence_in)
 

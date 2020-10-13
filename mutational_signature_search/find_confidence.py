@@ -9,14 +9,13 @@ import numpy as np
 
 import mutational_signature_search.plot_discriminate
 
-def main(phenotype, control, confs, point_estimate):
+def main(phenotype, control, confs, point_estimate, distribution):
   logging.info('starting...')
   start = (np.mean(phenotype) + np.mean(control)) / 2
   pmean = np.mean(phenotype)
   cmean = np.mean(control)
   pstd = np.std(phenotype)
   cstd = np.std(control)
-  distribution = 'beta'
   max_yval = 2.0
   logging.info('%i phenotype samples; %i control samples', len(phenotype), len(control))
 
@@ -35,6 +34,7 @@ if __name__ == '__main__':
   parser.add_argument('--control', required=True, nargs='+', type=float, help='control values')
   parser.add_argument('--conf', required=True, nargs='+', type=float, help='confidences to calculate')
   parser.add_argument('--point_estimate', action='store_true', help='calculate point estimate confidence levels')
+  parser.add_argument('--distribution', required=False, default='beta', help='distribution')
   parser.add_argument('--verbose', action='store_true', help='more logging')
   args = parser.parse_args()
   if args.verbose:
@@ -42,4 +42,4 @@ if __name__ == '__main__':
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  main(args.phenotype, args.control, args.conf, args.point_estimate)
+  main(args.phenotype, args.control, args.conf, args.point_estimate, args.distribution)
