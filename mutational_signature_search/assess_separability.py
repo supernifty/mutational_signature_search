@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
+import argparse
 import logging
+import math
+import sys
 
 import numpy as np
 import scipy.stats
 import sklearn.discriminant_analysis
+import sklearn.metrics
 
 def t_test(a, b, one_sided=False):
   if len(a) == 1 or len(b) == 1:
@@ -166,8 +170,91 @@ def measure_accuracy(a, b, v):
   fp = sum([1 for x in b if x >= v]) # incorrect control
   tn = sum([1 for x in b if x < v]) # good control
   fn = sum([1 for x in a if x < v]) # incorrect case
-  return {'tp': tp, 'fp': fp, 'tn': tn, 'fn': fn}
 
+  if tp + fn > 0:
+    sensitivity = tp / (tp + fn)
+  else:
+    senitivity = 0
+  if tn + fp > 0:
+    specificity = tn / (tn + fp)
+  else:
+    specificity = 0
+
+  if tp + fp > 0:
+    ppv = tp / (tp + fp)
+  else:
+    ppv = 0
+  if tn + fn > 0:
+    npv = tn / (tn + fn)
+  else:
+    npv = 0
+
+  accuracy = (tp + tn) / (tp + tn + fp + fn)
+
+  return {'tp': tp, 'fp': fp, 'tn': tn, 'fn': fn, 'sensitivity': sensitivity, 'specificity': specificity, 'accuracy': accuracy, 'ppv': ppv, 'npv': npv}
+
+def auc_ci(a, b):
+  '''
+    Hanley and McNeil 1982
+    https://homes.cs.washington.edu/~jfogarty/publications/gi2005.pdf
+  '''
+  truth = [1] * len(a) + [0] * len(b)
+  values = a + b
+  auc = sklearn.metrics.roc_auc_score(truth, values)
+
+  if auc == 1:
+    # based on tables 1 and 2 from Obuchowski, N. A., & Lieber, M. L. (2002). Confidence Bounds When the Estimated ROC Area is 1.0. Academic Radiology, 9(5), 526–530. doi:10.1016/s1076-6332(03)80329-x 
+    if len(a) >= 30 and len(b) >= 30:
+      return (0.98, 1.0)
+    if len(a) >= 15 and len(b) >= 15:
+      # n,m n=cases
+      table1 = {
+        '15,15': 0.93, '20,15': 0.94, '25,15': 0.95, '30,15': 0.96,
+        '15,20': 0.95, '20,20': 0.96, '25,20': 0.97, '30,20': 0.97,
+        '15,25': 0.95, '20,25': 0.96, '25,25': 0.97, '30,25': 0.98,
+        '15,30': 0.96, '20,30': 0.97, '25,30': 0.98, '30,30': 0.98
+      }
+      n = min(len(a) - len(a) % 5, 30)
+      m = min(len(b) - len(b) % 5, 30)
+      return (table1['{},{}'.format(n,m)], 1.0)
+    else:
+      n = min(len(a), 30)
+      m = min(len(b), 30)
+      n -= n % 5
+      m -= m % 5
+      if n > 0 and m > 0:
+        table2 = {
+          '5,5': 0.72, '5,10': 0.82, '5,15': 0.87, '5,20': 0.89, '5,25': 0.90, '5,30': 0.91,
+          '10,5': 0.82, '10,10': 0.90, '10,15': 0.93, '10,20': 0.94, '10,25': 0.95, '10,30': 0.96,
+          '15,5': 0.87, '15,10': 0.93,
+          '20,5': 0.89, '20,10': 0.94,
+          '25,5': 0.90, '25,10': 0.95,
+          '30,5': 0.92, '30,10': 0.96
+        }
+        return (table2['{},{}'.format(n,m)], 1.0)
+      else:      
+        return (0.0, 1.0)
+
+  else:
+    dp = (len(a) - 1) * (auc/(2-auc)-auc*auc)
+    dn = (len(b) - 1) * (2 * auc * auc / (1 + auc) - auc * auc)
+    interim = (auc * (1-auc) + dp + dn) / (len(a) * len(b))
+    if interim > 0:
+      se = math.sqrt(interim)
+    else:
+      se = 0
+    logging.debug('se of auc is %.3f', se)
+    low = max(0, auc - 1.96 * se)
+    high = min(1, auc + 1.96 * se)
+    return (low, high)
+
+def auc_sklearn(a, b):
+  truth = [1] * len(a) + [0] * len(b)
+  values = a + b
+  auc = sklearn.metrics.roc_auc_score(truth, values)
+  ci = auc_ci(a, b)
+  return {'auc': auc, 'ci': ci}
+  
 def auc(a, b):
   points = sorted(a + b)
   fprs = []
@@ -187,7 +274,21 @@ def auc(a, b):
       area += (tprs[-1] + tpr) / 2 * (fprs[-1] - fpr)
     fprs.append(fpr)
     tprs.append(tpr)
-  return {'fprs': fprs, 'tprs': tprs, 'auc': area}
+  ci = auc_ci(a, b)
+  return {'fprs': fprs, 'tprs': tprs, 'auc': area, 'ci': ci}
+
+def write_accuracy(a, b, vs, out):
+  out.write('threshold\taccuracy\tsensitivity\tspecificity\tppv\tnpv\tTP\tTN\tFP\tFN\n')
+  for v in vs:
+    r = measure_accuracy(a, b, v)
+    out.write('{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{}\t{}\t{}\t{}\n'.format(v, r['accuracy'], r['sensitivity'], r['specificity'], r['ppv'], r['npv'], r['tp'], r['tn'], r['fp'], r['fn']))
+
 
 #def calculate_auc(a, b):
-  
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Measure accuracy etc')
+  parser.add_argument('--phenotype', type=float, nargs='+', required=True, help='phenotype')
+  parser.add_argument('--control', type=float, nargs='+', required=True, help='control')
+  parser.add_argument('--thresholds', type=float, nargs='+', required=True, help='thresholds')
+  args = parser.parse_args()  
+  write_accuracy(args.phenotype, args.control, args.thresholds, sys.stdout)

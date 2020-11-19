@@ -22,7 +22,6 @@ from pylab import rcParams
 DPI=300
 
 LINE_WIDTH=2
-MARKER_SIZE=6
 ALPHA=0.7
 
 HIGHLIGHT_LINE_WIDTH=3
@@ -67,7 +66,9 @@ LABELS = {'DP': 'Minimum Tumour Depth at Variant', 'AF': 'Minimum Variant Allele
 # blue red green
 #CONFIDENCE_COLORS=['#0000cc', '#cc0000', '#00cc00']
 #CONFIDENCE_COLORS=['#cc0000', '#f09000', '#0000cc', '#00cc00']
-CONFIDENCE_COLORS=['#cc0000', '#00cc00', '#0000cc']
+
+# red blue green
+CONFIDENCE_COLORS=['#cc0000', '#0000cc', '#00cc00']
 CONFIDENCE_ALPHA=0.8
 CONFIDENCE_LINEWIDTH=4
 
@@ -310,7 +311,7 @@ def ci(xs, distribution, interval=0.95, max_yval=1.0):
       logging.debug('ppf for %s at interval %.2f max %f is %s with mean_scaled %f sd_scaled %f', xs, interval, max_yval, ppf, mean_scaled, sd_scaled)
     return ppf
 
-def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True, confidence_in=None):
+def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True, confidence_in=None, markersize=6, linewidth=2.0):
   logging.info('v2. plotting signature %s with filter %s and confidence phenotype %s max_yval %.2f...', signature, filters, confidence_phenotypes, max_yval)
 
   import matplotlib.style
@@ -375,6 +376,8 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
 
   # generate plot
   fig = plt.figure(figsize=(width, height))
+  plt.rcParams.update({'font.size': fontsize})
+  plt.rc('legend',fontsize=fontsize)
   if error_plot and not count_plot: # just error plot
     grid = plt.GridSpec(6, 1, hspace=0, wspace=0)
     ax = fig.add_subplot(grid[0:-1, :])
@@ -390,6 +393,9 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
     ax_count = fig.add_subplot(grid[-1, :], sharex=ax)
   else:
     ax = fig.add_subplot(111)
+
+  ax.tick_params(axis='x', labelsize=fontsize)
+  ax.tick_params(axis='y', labelsize=fontsize)
 
   if logx:
     ax.set_xscale("log", nonposx='clip')
@@ -418,12 +424,8 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
 
     color = GROUP_COLOURS[group_num % len(GROUP_COLOURS)]
     if highlight_groups is not None and group in highlight_groups:
-      marker_size = HIGHLIGHT_MARKER_SIZE
-      line_width = HIGHLIGHT_LINE_WIDTH
       alpha = HIGHLIGHT_ALPHA
     else:
-      marker_size = MARKER_SIZE
-      line_width = LINE_WIDTH
       alpha = ALPHA
 
     # each sample in this group
@@ -475,9 +477,9 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
         label = sample
 
       if not summarise_groups:
-        ax.plot(xs, ys, label=label, color=color, marker=MARKERS[idx % len(MARKERS)], markersize=marker_size, alpha=alpha, linewidth=line_width)
-      if summarise_groups and group in highlight_groups:
-        ax.plot(xs, ys, label='{} {}'.format(group, label), color=color, marker=MARKERS[idx % len(MARKERS)], markersize=HIGHLIGHT_MARKER_SIZE, alpha=HIGHLIGHT_ALPHA, linewidth=HIGHLIGHT_LINE_WIDTH)
+        ax.plot(xs, ys, label=label, color=color, marker=MARKERS[idx % len(MARKERS)], markersize=markersize, alpha=alpha, linewidth=linewidth)
+      if summarise_groups and highlight_groups is not None and group in highlight_groups:
+        ax.plot(xs, ys, label='{} {}'.format(group, label), color=color, marker=MARKERS[idx % len(MARKERS)], markersize=markersize, alpha=HIGHLIGHT_ALPHA, linewidth=linewidth*0.2)
       logging.debug('added sample %s for group %s with %i xs %i ys', label, group, len(xs), len(ys))
     
     if summarise_groups:
@@ -494,25 +496,30 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
         pass #ax.plot(xs, [group_summary[group][x] for x in xs], label='{}'.format(group), color=color, alpha=alpha, linewidth=HIGHLIGHT_LINE_WIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=HIGHLIGHT_MARKER_SIZE)
       elif len(group_summary[group][xs[0]]) == 1: # just one sample, or our highlight group
         logging.info('group %s has just one sample', group)
-        ax.plot(xs, [group_summary[group][x] for x in xs], label='{}'.format(group), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
+        ax.plot(xs, [group_summary[group][x] for x in xs], label='{}'.format(group), color=color, alpha=alpha, linewidth=linewidth, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=markersize)
       else:
         logging.info('group %s has %i samples', group, len(group_summary[group][xs[0]]))
-        ax.plot(xs, mid, label='{} 50th pctl n={}'.format(group, len(group_summary[group][xs[0]])), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
-        ax.plot(xs, upper, label='{} 95th pctl'.format(group), color=color, alpha=alpha, linewidth=STD_LINEWIDTH, marker=MARKERS[(group_num * 3 + 1) % len(MARKERS)], markersize=marker_size)
-        ax.plot(xs, lower, label='{} 5th pctl'.format(group), color=color, alpha=alpha, linewidth=STD_LINEWIDTH, marker=MARKERS[(group_num * 3 + 2) % len(MARKERS)], markersize=marker_size)
+        #ax.plot(xs, mid, label='{} 50th pctl n={}'.format(group, len(group_summary[group][xs[0]])), color=color, alpha=alpha, linewidth=MEAN_LINEWIDTH, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=marker_size)
+        ax.plot(xs, mid, label='{} 50th pctl'.format(group), color=color, alpha=alpha, linewidth=linewidth, marker=MARKERS[(group_num * 3) % len(MARKERS)], markersize=markersize)
+        ax.plot(xs, upper, label='{} 95th pctl'.format(group), color=color, alpha=alpha, linewidth=linewidth, marker=MARKERS[(group_num * 3 + 1) % len(MARKERS)], markersize=markersize)
+        ax.plot(xs, lower, label='{} 5th pctl'.format(group), color=color, alpha=alpha, linewidth=linewidth, marker=MARKERS[(group_num * 3 + 2) % len(MARKERS)], markersize=markersize)
         ax.fill_between(xs, lower, upper, color=color, alpha=0.2)
 
     if x_highlight is not None:
-      ax.axvline(x_highlight, color='#ff8000', ymin=0, ymax=1)
+      ax.axvline(x_highlight, color='#ff8000', ymin=0, ymax=1, linewidth=linewidth)
 
     logging.info('added group %s', group)
 
   # now add shading for groups
   if not summarise_groups:
     for group_num, group in enumerate(groups):
-      xs = [r[0] for r in sorted(results[groups[group][0]])]
-      logging.debug('xs %i groups_low %i groups_high %i', len(xs), len(groups_low[group]), len(groups_high[group]))
-      ax.fill_between(xs, groups_low[group], groups_high[group], color=GROUP_COLOURS[group_num % len(GROUP_COLOURS)], label=group, alpha=0.2)
+      logging.debug('getting xs for group %i: %s', group_num, group)
+      if len(groups[group]) == 0:
+        logging.info('skipping group %s due to being empty', group)
+      else:
+        xs = [r[0] for r in sorted(results[groups[group][0]])]
+        logging.debug('xs %i groups_low %i groups_high %i', len(xs), len(groups_low[group]), len(groups_high[group]))
+        ax.fill_between(xs, groups_low[group], groups_high[group], color=GROUP_COLOURS[group_num % len(GROUP_COLOURS)], label=group, alpha=0.2)
 
   # confidence provided as percentages
   if confidence is not None:
@@ -538,7 +545,7 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
             confidence_result[str(xval)] = yval[0]
           confidence_min[ix] = min(confidence_min[ix], confidence_ys[-1])
           confidence_max[ix] = max(confidence_max[ix], confidence_ys[-1])
-      ax.plot(confidence_xs, confidence_ys, label='{:.0f}% confidence'.format(conf * 100), color=CONFIDENCE_COLORS[conf_ix % len(CONFIDENCE_COLORS)], alpha=CONFIDENCE_ALPHA, linewidth=CONFIDENCE_LINEWIDTH)
+      ax.plot(confidence_xs, confidence_ys, label='{:.0f}% confidence'.format(conf * 100), color=CONFIDENCE_COLORS[conf_ix % len(CONFIDENCE_COLORS)], alpha=CONFIDENCE_ALPHA, linewidth=linewidth * 1.5)
       confidence_results[str(conf)] = confidence_result
     # and the range
     #ax.fill_between(sorted(confidence_phenotype.keys()), confidence_min, confidence_max, color=CONFIDENCE_COLOR, alpha=0.2)
@@ -557,19 +564,19 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
       confidence_xs = [float(row[0]) for row in rows[1:] if float(row[col + 1]) >= -0.1]
       confidence_ys = [float(row[col + 1]) for row in rows[1:] if float(row[col + 1]) >= -0.1]
       logging.debug('confidence_xs %s confidence_ys %s', confidence_xs, confidence_ys)
-      ax.plot(confidence_xs, confidence_ys, label='{:.0f}% confidence'.format(interval * 100), color=CONFIDENCE_COLORS[col % len(CONFIDENCE_COLORS)], alpha=CONFIDENCE_ALPHA, linewidth=CONFIDENCE_LINEWIDTH)
+      ax.plot(confidence_xs, confidence_ys, label='{:.0f}% confidence'.format(interval * 100), color=CONFIDENCE_COLORS[col % len(CONFIDENCE_COLORS)], alpha=CONFIDENCE_ALPHA, linewidth=linewidth * 1.5)
 
   # additional annotation
   if isinstance(signature, list):
-    ax.set_ylabel('Sum of signatures {}'.format(' '.join(signature)))
+    ax.set_ylabel('Sum of signatures {}'.format(' '.join(signature)), fontsize=fontsize)
   else:
-    ax.set_ylabel('Signature {} proportion'.format(signature))
+    ax.set_ylabel('Signature {} proportion'.format(signature), fontsize=fontsize)
 
-  ax.set_xlabel(LABELS[x])
+  ax.set_xlabel(LABELS[x], fontsize=fontsize)
   if title is None:
-    ax.set_title('Separation of subtypes across {} using signature {} ({})'.format(x, signature, ' '.join(filters)))
+    ax.set_title('Separation of subtypes across {} using signature {} ({})'.format(x, signature, ' '.join(filters)), fontsize=fontsize)
   else:
-    ax.set_title(title) #'Association of signature {} across {} ({})'.format(signature, x, title))
+    ax.set_title(title, fontsize=fontsize) #'Association of signature {} across {} ({})'.format(signature, x, title))
 
   # place legend at right based on https://stackoverflow.com/questions/10101700/moving-matplotlib-legend-outside-of-the-axis-makes-it-cutoff-by-the-figure-box/10154763#10154763
   handles, labels = ax.get_legend_handles_labels()
@@ -581,23 +588,23 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
     sample_results = sorted(results[representative], key=lambda r: r[0]) # for this sample, get all in order results
     xs = [r[0] for r in sample_results]
     ys = [r[2] for r in sample_results] 
-    ax_err.plot(xs, ys, 'k-', linewidth=0.5)
+    ax_err.plot(xs, ys, 'k-', linewidth=linewidth * 0.25)
     ax_err.fill_between(xs, 0, ys, color='#a0a0a0')
     ax_err.grid(True)
-    ax_err.set_ylabel('Error')
+    ax_err.set_ylabel('Error', fontsize=fontsize)
     ax_err.set_ylim((0, 1.0))
-    ax_err.set_xlabel(x)
+    ax_err.set_xlabel(x, fontsize=fontsize)
 
   if count_plot:
     representative = list(all_samples)[0]
     sample_results = sorted(results[representative], key=lambda r: r[0]) # for this sample, get all in order results
     xs = [r[0] for r in sample_results]
     ys = [r[3] for r in sample_results] 
-    ax_count.plot(xs, ys, 'k-', linewidth=0.5)
+    ax_count.plot(xs, ys, 'k-', linewidth=linewidth * 0.25)
     ax_count.fill_between(xs, 0, ys, color='#a0a0a0')
     ax_count.grid(True)
-    ax_count.set_ylabel('Mutations')
-    ax_count.set_xlabel(x)
+    ax_count.set_ylabel('Mutations', fontsize=fontsize)
+    ax_count.set_xlabel(x, fontsize=fontsize)
     #ax_count.set_xscale("log", nonposx='clip')
 
   #plt.savefig(target)
@@ -628,6 +635,8 @@ if __name__ == '__main__':
   parser.add_argument('--confidence_in', required=False, help='file containing existing confidence calculations')
   parser.add_argument('--distribution', required=False, default='normal', help='assumption of distribution [normal, lognormal]')
   parser.add_argument('--max_yval', required=False, type=float, default=1.0, help='vertical line at this value')
+  parser.add_argument('--markersize', required=False, type=float, default=6, help='size of markers')
+  parser.add_argument('--linewidth', required=False, type=float, default=2, help='line width')
   parser.add_argument('--height', required=False, type=float, default=8, help='height of plot')
   parser.add_argument('--width', required=False, type=float, width=12, help='width of plot')
   parser.add_argument('--fontsize', required=False, default=12, type=int, help='plot font size')
@@ -643,5 +652,5 @@ if __name__ == '__main__':
     group, samples = item.split('=')
     groups[group] = samples.split(',')
 
-  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate, args.confidence_in)
+  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate, args.confidence_in, args.markersize, args.linewidth)
 

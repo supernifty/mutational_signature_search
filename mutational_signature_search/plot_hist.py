@@ -19,7 +19,7 @@ X_HIGHLIGHT_COLOUR='#ff8000'
 colors = {"SBS1": "#c0c0c0", "SBS2": "#41ac2f", "SBS3": "#7951d0", "SBS4": "#73d053", "SBS5": "#b969e9", "SBS6": "#91ba2c", "SBS7a": "#b4b42f", "SBS7b": "#5276ec", "SBS7c": "#daae36", "SBS7d": "#9e40b5", "SBS8": "#43c673", "SBS9": "#dd4cb0", "SBS10a": "#3d9332", "SBS10b": "#de77dd", "SBS11": "#7bad47", "SBS12": "#9479e8", "SBS13": "#487b21", "SBS14": "#a83292", "SBS15": "#83c67d", "SBS16": "#664db1", "SBS17a": "#e18d28", "SBS17b": "#588de5", "SBS18": "#e2672a", "SBS19": "#34c7dd", "SBS20": "#cf402b", "SBS21": "#5acdaf", "SBS22": "#d74587", "SBS23": "#428647", "SBS24": "#7b51a7", "SBS25": "#b4ba64", "SBS26": "#646cc1", "SBS27": "#a27f1f", "SBS28": "#3b63ac", "SBS29": "#dca653", "SBS30": "#505099", "SBS31": "#7d8529", "SBS32": "#bf8ade", "SBS33": "#516615", "SBS34": "#b65da7", "SBS35": "#57a87a", "SBS36": "#c84249", "SBS37": "#37b5b1", "SBS38": "#a14622", "SBS39": "#58b5e1", "SBS40": "#ba6e2f", "SBS41": "#589ed8", "SBS42": "#e98261", "SBS43": "#3176ae", "SBS44": "#656413", "SBS45": "#a19fe2", "SBS46": "#756121", "SBS47": "#7e4a8d", "SBS48": "#326a38", "SBS49": "#dd8abf", "SBS50": "#1a6447", "SBS51": "#e78492", "SBS52": "#30876c", "SBS53": "#9d4d7c", "SBS54": "#919d5b", "SBS55": "#9d70ac", "SBS56": "#5b6f34", "SBS57": "#65659c", "SBS58": "#c9a865", "SBS59": "#a1455d", "SBS60": "#5e622c", "SBS84": "#b66057", "SBS85": "#dca173", "DBS1": "#855524", "DBS2": "#9f7846", "DBS3": "#7951d0", "DBS4": "#73d053", "DBS5": "#b969e9", "DBS6": "#91ba2c", "DBS7": "#3656ca", "DBS8": "#b4b42f", "DBS9": "#5276ec", "DBS10": "#daae36", "DBS11": "#9e40b5", "ID1": "#de3860", "ID2": "#41ac2f", "ID3": "#7951d0", "ID4": "#73d053", "ID5": "#b969e9", "ID6": "#91ba2c", "ID7": "#9e40b5", "ID8": "#43c673", "ID9": "#dd4cb0", "ID10": "#3d9332", "ID11": "#de77dd", "ID12": "#7bad47", "ID13": "#9479e8", "ID14": "#487b21", "ID15": "#a83292", "ID16": "#83c67d", "ID17": "#664db1", "1": "#b66057", "2": "#dca173", "3": "#855524", "4": "#9f7846", "5": "#7951d0", "6": "#73d053", "7": "#b969e9", "8": "#91ba2c", "9": "#3656ca", "10": "#b4b42f", "11": "#5276ec", "12": "#daae36", "13": "#9e40b5", "14": "#de3860", "15": "#41ac2f", "16": "#7951d0", "17": "#73d053", "18": "#b969e9", "19": "#91ba2c", "20": "#9e40b5", "21": "#43c673", "22": "#dd4cb0", "23": "#3d9332", "24": "#de77dd", "25": "#7bad47", "26": "#9479e8", "27": "#487b21", "28": "#a83292", "29": "#83c67d", "30": "#664db1"}
 
 #plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.split_count, args.signature_ids, args.min_signature_val, args.x_highlight, args.height, args.width, args.fontsize)
-def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, error_plot, count_plot, split_count, signature_ids, min_signature_val, x_highlight=None, height=8, width=12, fontsize=12):
+def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, error_plot, count_plot, split_count, signature_ids, min_signature_val, x_highlight=None, height=8, width=12, fontsize=12, dpi=300, linewidth=0.5):
   logging.info('starting...')
   # split count currently only for both error and count plots
 
@@ -61,28 +61,48 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
     return
 
   fig = plt.figure(figsize=(width, height))
+  rcParams.update({'font.size': fontsize})
+  plt.rc('legend',fontsize=fontsize)
   if error_plot and not count_plot: # just error plot
     grid = plt.GridSpec(6, 1, hspace=0, wspace=0)
     ax = fig.add_subplot(grid[0:-1, :])
     ax_err = fig.add_subplot(grid[-1, :], sharex=ax)
+    ax_err.tick_params(axis='x', labelsize=fontsize)
+    ax_err.tick_params(axis='y', labelsize=fontsize)
   elif error_plot and count_plot: # both
     if split_count:
       grid = plt.GridSpec(100, 1, hspace=0, wspace=0) # total height
       ax = fig.add_subplot(grid[0:-30, :]) # give to main plot
       ax_err = fig.add_subplot(grid[-29:-21, :], sharex=ax) # give to error plot
+      ax_err.tick_params(axis='x', labelsize=fontsize)
+      ax_err.tick_params(axis='y', labelsize=fontsize)
       ax_count_top = fig.add_subplot(grid[-20:-11, :], sharex=ax) # give to half of variant count plot
+      ax_count_top.tick_params(axis='x', labelsize=fontsize)
+      ax_count_top.tick_params(axis='y', labelsize=fontsize)
       ax_count_bottom = fig.add_subplot(grid[-10:, :], sharex=ax) # give to half of variant count plot
+      ax_count_bottom.tick_params(axis='x', labelsize=fontsize)
+      ax_count_bottom.tick_params(axis='y', labelsize=fontsize)
     else:
       grid = plt.GridSpec(7, 1, hspace=0, wspace=0)
       ax = fig.add_subplot(grid[0:-2, :])
       ax_err = fig.add_subplot(grid[-2, :], sharex=ax)
+      ax_err.tick_params(axis='x', labelsize=fontsize)
+      ax_err.tick_params(axis='y', labelsize=fontsize)
       ax_count = fig.add_subplot(grid[-1, :], sharex=ax)
+      ax_count.tick_params(axis='x', labelsize=fontsize)
+      ax_count.tick_params(axis='y', labelsize=fontsize)
   elif not error_plot and count_plot: # just count plot
     grid = plt.GridSpec(6, 1, hspace=0, wspace=0)
     ax = fig.add_subplot(grid[0:-1, :])
     ax_count = fig.add_subplot(grid[-1, :], sharex=ax)
+    ax_count.tick_params(axis='x', labelsize=fontsize)
+    ax_count.tick_params(axis='y', labelsize=fontsize)
   else:
     ax = fig.add_subplot(111)
+
+  ax.tick_params(axis='x', labelsize=fontsize)
+  ax.tick_params(axis='y', labelsize=fontsize)
+
 
   if logx:
     ax.set_xscale("log", nonposx='clip')
@@ -116,29 +136,30 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
   if x_highlight is not None:
     ax.axvline(x_highlight, color=X_HIGHLIGHT_COLOUR, ymin=0, ymax=1)
 
-  ax.set_ylabel('Signature proportion')
+  ax.set_ylabel('Signature proportion', fontsize=fontsize)
   if not error_plot and not count_plot:
-    ax.set_xlabel(LABELS[x])
+    ax.set_xlabel(LABELS[x], fontsize=fontsize)
   else:
     ax.tick_params(labeltop=False, labelbottom=False)
 
   if title is None:
     ax.set_title('Somatic mutational signatures detected by {} for {} ({})'.format(x, ' '.join(samples), ' '.join(filters)))
   else:
-    ax.set_title(title)
+    ax.set_title(title, fontsize=fontsize)
   #ax.legend(loc="upper right", bbox_to_anchor=(0.99,0.90), bbox_transform=plt.gcf().transFigure)
 
   if error_plot:
     ys = [r[2] for r in results]
-    ax_err.plot(xs, ys, 'k-', linewidth=0.5)
+    ax_err.plot(xs, ys, 'k-', linewidth=linewidth)
     ax_err.fill_between(xs, 0, ys, color='#a0a0a0')
     ax_err.grid(True)
-    ax_err.set_ylabel('Error')
-    ax_err.set_ylim((0, 1.0))
+    ax_err.set_ylabel('Error', fontsize=fontsize)
+    #ax_err.set_ylim((0, 1.0))
+    ax_err.set_ylim((0, max(0.2, max(ys))))
     if count_plot:
       ax_err.tick_params(labeltop=False, labelbottom=False)
     else:
-      ax_err.set_xlabel(LABELS[x])
+      ax_err.set_xlabel(LABELS[x], fontsize=fontsize)
 
   if count_plot:
     ys = [r[3] for r in results]
@@ -146,8 +167,8 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
       ymax = max(ys)
       ymid = ys[int(len(ys) / 2)] # roughly the median?
       # based on https://matplotlib.org/examples/pylab_examples/broken_axis.html
-      ax_count_top.plot(xs, ys, 'k-', linewidth=0.5)
-      ax_count_bottom.plot(xs, ys, 'k-', linewidth=0.5)
+      ax_count_top.plot(xs, ys, 'k-', linewidth=linewidth)
+      ax_count_bottom.plot(xs, ys, 'k-', linewidth=linewidth)
       ax_count_top.fill_between(xs, 0, ys, color='#a0a0a0')
       ax_count_bottom.fill_between(xs, 0, ys, color='#a0a0a0')
 
@@ -170,27 +191,27 @@ def plot_hist(data_fh, samples, x, target, filters, title, logx, highlight, erro
       dx = .01  # how big to make the diagonal lines in axes coordinates
       dy = .01  # how big to make the diagonal lines in axes coordinates
       # arguments to pass to plot, just so we don't keep repeating them
-      kwargs = dict(transform=ax_count_top.transAxes, color='k', clip_on=False)
+      kwargs = dict(transform=ax_count_top.transAxes, color='k', clip_on=False, linewidth=linewidth)
       ax_count_top.plot((-dx, +dy), (-dx, +dy), **kwargs)        # top-left diagonal
       ax_count_top.plot((1 - dx, 1 + dy), (-dx, +dy), **kwargs)  # top-right diagonal
 
       kwargs.update(transform=ax_count_bottom.transAxes)  # switch to the bottom axes
       ax_count_bottom.plot((-dx, +dy), (1 - dx, 1 + dy), **kwargs)  # bottom-left diagonal
       ax_count_bottom.plot((1 - dx, 1 + dy), (1 - dx, 1 + dy), **kwargs)  # bottom-right diagonal
-      ax_count_bottom.set_xlabel(LABELS[x])
-      ax_count_bottom.set_ylabel('Variants')
+      ax_count_bottom.set_xlabel(LABELS[x], fontsize=fontsize)
+      ax_count_bottom.set_ylabel('Variants', fontsize=fontsize)
     else:
-      ax_count.plot(xs, ys, 'k-', linewidth=0.5)
+      ax_count.plot(xs, ys, 'k-', linewidth=linewidth)
       ax_count.fill_between(xs, 0, ys, color='#a0a0a0')
       ax_count.grid(True)
-      ax_count.set_ylabel('Variants')
-      ax_count.set_xlabel(LABELS[x])
+      ax_count.set_ylabel('Variants', fontsize=fontsize)
+      ax_count.set_xlabel(LABELS[x], fontsize=fontsize)
 
   # place legend at right based on https://stackoverflow.com/questions/10101700/moving-matplotlib-legend-outside-of-the-axis-makes-it-cutoff-by-the-figure-box/10154763#10154763
   handles, labels = ax.get_legend_handles_labels()
   lgd = ax.legend(handles, labels, loc='upper left', bbox_to_anchor=(1.01,1.0), borderaxespad=0)
   lgd.get_frame().set_edgecolor('#000000')
-  fig.savefig(target, bbox_extra_artists=(lgd,), bbox_inches='tight')
+  fig.savefig(target, bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=dpi)
 
   logging.info('done processing %i of %i', included, total)
   matplotlib.pyplot.close('all')
@@ -215,11 +236,13 @@ if __name__ == '__main__':
   parser.add_argument('--min_signature_val', required=False, default=-1, type=float, help='minimum value of signature to include')
   parser.add_argument('--height', required=False, type=float, default=8, help='height of plot')
   parser.add_argument('--width', required=False, type=float, width=12, help='width of plot')
+  parser.add_argument('--dpi', required=False, type=int, default=300, help='dpi of plot')
   parser.add_argument('--fontsize', required=False, default=12, type=int, help='plot font size')
+  parser.add_argument('--linewidth', required=False, default=0.5, type=float, help='line widths')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.split_count, args.signature_ids, args.min_signature_val, args.x_highlight, args.height, args.width, args.fontsize)
+  plot_hist(open(args.data, 'r'), args.samples, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.split_count, args.signature_ids, args.min_signature_val, args.x_highlight, args.height, args.width, args.fontsize, dpi, linewidth)
