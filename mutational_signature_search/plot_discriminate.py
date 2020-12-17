@@ -19,7 +19,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pylab import rcParams
-DPI=300
 
 LINE_WIDTH=2
 ALPHA=0.7
@@ -311,7 +310,7 @@ def ci(xs, distribution, interval=0.95, max_yval=1.0):
       logging.debug('ppf for %s at interval %.2f max %f is %s with mean_scaled %f sd_scaled %f', xs, interval, max_yval, ppf, mean_scaled, sd_scaled)
     return ppf
 
-def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True, confidence_in=None, markersize=6, linewidth=2.0):
+def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signature, error_plot, count_plot, anonymise, highlight_groups, no_legend=False, confidence=None, confidence_phenotypes=set(), summarise_groups=False, x_highlight=None, distribution='normal', max_yval=1.0, width=12, height=8, fontsize=8, confidence_out=sys.stdout, point_estimate=True, confidence_in=None, markersize=6, linewidth=2.0, dpi=300):
   logging.info('v2. plotting signature %s with filter %s and confidence phenotype %s max_yval %.2f...', signature, filters, confidence_phenotypes, max_yval)
 
   import matplotlib.style
@@ -608,7 +607,8 @@ def plot_discriminate(data_fh, groups, x, target, filters, title, logx, signatur
     #ax_count.set_xscale("log", nonposx='clip')
 
   #plt.savefig(target)
-  fig.savefig(target, bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=DPI)
+  logging.info('writing to %s with dpi %i', target, dpi)
+  fig.savefig(target, bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=dpi)
   matplotlib.pyplot.close('all')
   logging.info('done processing %i of %i', included, total)
 
@@ -640,6 +640,7 @@ if __name__ == '__main__':
   parser.add_argument('--height', required=False, type=float, default=8, help='height of plot')
   parser.add_argument('--width', required=False, type=float, width=12, help='width of plot')
   parser.add_argument('--fontsize', required=False, default=12, type=int, help='plot font size')
+  parser.add_argument('--dpi', required=False, default=300, type=int, help='plot dpi')
   parser.add_argument('--point_estimate', action='store_true', help='calculate point estimate confidence levels')
   args = parser.parse_args()
   if args.verbose:
@@ -652,5 +653,5 @@ if __name__ == '__main__':
     group, samples = item.split('=')
     groups[group] = samples.split(',')
 
-  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate, args.confidence_in, args.markersize, args.linewidth)
+  plot_discriminate(open(args.data, 'r'), groups, args.x, args.target, args.filters, args.title, args.logx, args.highlight, args.error_plot, args.count_plot, args.anonymise, args.highlight_groups, args.no_legend, args.confidence, args.confidence_phenotypes, args.summarise_groups, args.x_highlight, args.distribution, args.max_yval, args.height, args.width, args.fontsize, sys.stdout, args.point_estimate, args.confidence_in, args.markersize, args.linewidth, args.dpi)
 

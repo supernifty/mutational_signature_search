@@ -15,9 +15,8 @@ from pylab import rcParams
 # rcParams['figure.figsize'] = 16, 10
 
 LABELS = {'DP': 'Minimum Tumour Depth at Variant', 'AF': 'Minimum Variant Allele Fraction'}
-DPI = 300
 
-def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highlight, y_multiples, max_error, width=10, height=10, fontsize=8):
+def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highlight, y_multiples, max_error, width=10, height=10, fontsize=8, dpi=300):
   figsize = (width, height)
   logging.info('starting...')
 
@@ -33,7 +32,7 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
   yvals = set()
   max_zval = 0.0
   for row in csv.DictReader(data_fh, delimiter='\t'):
-    if row['Sample'] in samples:
+    if samples is None or row['Sample'] in samples:
       tags.add(row['Tags'])
       ok = True
       for f in filters:
@@ -122,13 +121,13 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
 
   logging.info('done processing %i of %i', included, total)
   plt.tight_layout()
-  plt.savefig(target, dpi=DPI)
+  plt.savefig(target, dpi=dpi)
   matplotlib.pyplot.close('all')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Plot changes in signature')
   parser.add_argument('--data', required=True, help='data file')
-  parser.add_argument('--samples', nargs='+', required=True, help='sample filter')
+  parser.add_argument('--samples', nargs='+', required=False, help='sample filter')
   parser.add_argument('--filters', nargs='*', default=[], help='other filters')
   parser.add_argument('--highlight', required=True, help='signature(s) to highlight')
   parser.add_argument('--x', required=True, help='x column name')
@@ -140,11 +139,12 @@ if __name__ == '__main__':
   parser.add_argument('--max_error', type=float, default=0.5, help='x column name')
   parser.add_argument('--height', required=False, type=float, default=10, help='height of plot')
   parser.add_argument('--width', required=False, type=float, default=10, help='width of plot')
-  parser.add_argument('--fontsize', required=False, type=float, width=8, help='width of plot')
+  parser.add_argument('--dpi', required=False, type=float, default=300, help='dpi of plot')
+  parser.add_argument('--fontsize', required=False, type=float, default=8, help='width of plot')
   args = parser.parse_args()
   if args.verbose:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
   else:
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-  plot_heat(open(args.data, 'r'), args.samples, args.x, args.y, args.target, args.filters, args.title, args.highlight, args.y_multiples, args.max_error, args.width, args.height, args.fontsize)
+  plot_heat(open(args.data, 'r'), args.samples, args.x, args.y, args.target, args.filters, args.title, args.highlight, args.y_multiples, args.max_error, args.width, args.height, args.fontsize, args.dpi)
