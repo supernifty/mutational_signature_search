@@ -41,6 +41,7 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
           ok = False
 
       if y_multiples is not None and int(row['DP']) % y_multiples != 0:
+        logging.info('skipping %s as DP is not a multiple of %i', row, y_multiples)
         ok = False
 
       if ok:
@@ -51,6 +52,7 @@ def plot_heat(data_fh, samples, xlabel, ylabel, target, filters, title, highligh
         yvals.add(yval)
         #zval = float(row['Signature.{}'.format(highlight)])
         zval = float(row[highlight])
+        logging.debug('row has error %s xval %s yval %s zval %s', row['Error'], xval, yval, zval)
         if row['Error'] == 'nan':
           results['{},{}'.format(xval, yval)] = (0.0, 1)
         elif float(row['Error']) > max_error:
