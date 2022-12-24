@@ -167,7 +167,7 @@ def solve(conf, pu, cu, psd, csd, distribution, max_yval, point_estimate=True, f
       continue
     # phenotype probability
     prob = CONFIDENCE_PRIOR_PHENOTYPE * prob_p / denominator
-    logging.debug('x {} xscaled {} prob {}'.format(x, x_scaled, prob))
+    logging.debug('x {} xscaled {} prob {} prob_p {} denominator {}'.format(x, x_scaled, prob, prob_p, denominator))
     if first:
       if prob >= conf and last < conf:
         best = (x, abs(prob - conf))

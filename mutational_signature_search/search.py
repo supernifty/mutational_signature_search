@@ -23,7 +23,7 @@ def filter_mutect2(sample, dp, af, use_bam_depth, pass_only):
       total_depth = variant.INFO['DP'] # somatic + germline depth
     #vcf_af = depths[1] / sum(depths)
     vcf_af = variant.format('AF')[sample_id] # mutect2 af
-    return total_depth >= dp and vcf_af > af
+    return total_depth >= dp and vcf_af >= af
 
   return filter_mutect2_instance
 
@@ -39,7 +39,7 @@ def filter_strelka(sample, dp, af, use_bam_depth, pass_only):
     else:
       total_depth = variant.INFO['DP'] # somatic + germline depth
     vcf_af = variant.INFO['AF']
-    return total_depth >= dp and vcf_af > af
+    return total_depth >= dp and vcf_af >= af
 
   return filter_strelka_instance
 
@@ -52,8 +52,8 @@ def main(genome, signatures, vcfs, dps, afs, context_cutoff, caller, tags, use_b
   for vcf in vcfs:
     outs = []
     variant_filters = []
-    #sample = vcf.split('/')[-1].split('.')[0] # simplified sample name
-    sample = vcf
+    sample = vcf.split('/')[-1].split('.')[0] # simplified sample name
+    #sample = vcf
     for dp in dps:
       for af in afs:
         # calculate counts

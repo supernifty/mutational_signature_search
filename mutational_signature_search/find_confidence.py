@@ -19,6 +19,15 @@ def main(phenotype, control, confs, point_estimate, distribution):
     distribution: distribution to use (beta, normal)
   '''
   logging.info('starting...')
+
+  if max(phenotype + control) > 1:
+    bigmax = max(phenotype + control)
+    logging.info('normalising to %f...', bigmax)
+    phenotype = [x / bigmax for x in phenotype]
+    control = [x / bigmax for x in control]
+  else:
+    bigmax = 1
+
   start = (np.mean(phenotype) + np.mean(control)) / 2
   pmean = np.mean(phenotype)
   cmean = np.mean(control)
@@ -38,7 +47,7 @@ def main(phenotype, control, confs, point_estimate, distribution):
       # accuracy measures
       measure = mutational_signature_search.assess_separability.measure_accuracy(phenotype, control, discriminant)
 
-    sys.stdout.write('{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(conf, discriminant, error, measure['accuracy'], measure['sensitivity'], measure['specificity']))
+    sys.stdout.write('{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(conf, discriminant * bigmax, error, measure['accuracy'], measure['sensitivity'], measure['specificity']))
   logging.info('done')
 
 if __name__ == '__main__':
