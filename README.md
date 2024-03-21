@@ -32,6 +32,15 @@ The tool can be slow to run, so consider running the tool multiple times with di
 
 This is the main computationally expensive step, once this is complete, there are different ways to visualise the data.
 
+Expectation for plotting is a tsv with the following columns:
+* DP
+* AF
+* Sample
+* Tags
+* Error
+* Variants
+* Signature values
+
 ### plot evolution of signatures across a parameter for a single sample
 Example command line:
 ```
