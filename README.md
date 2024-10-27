@@ -3,12 +3,6 @@
 Calculate mutational signatures over many samples with many experimental parameters.
 
 ## Installation
-On the unimelb spartan computing cluster:
-```
-module load Python/3.6.4-intel-2017.u2
-module load cURL/7.60.0-spartan_gcc-6.2.0
-```
-
 ```
 python -m venv venv
 source venv/bin/activate
@@ -21,6 +15,14 @@ pip install -r requirements.txt
 ```
 python mutational_signature_search/search.py --signatures sig_def --genome genome.fa --vcfs input_vcfs --dps depths --afs afs --caller strelka --use_bam_depth --tags wes-strelka-pass > search.out
 ```
+
+*Examples*
+
+TCGA
+```
+python mutational_signature_search/search.py --genome ../somatic_pipeline_hg38/pipeline/assets/Homo_sapiens_assembly38.fasta --signatures ../src/mutational_signature/data/signatures_cosmic_v3.4_sbs.hg38.txt --vcfs example/maf.gz --maf_sample TCGA-AA-3966-01A-01D-1981-10 --caller maf --dp 10 50 100 --af 0.1 0.3 0.5 --use_bam_depth t_depth --use_alt_depth t_alt_count
+```
+
 
 Some notes:
 * sig_def can be taken from the mutational_signatures package
